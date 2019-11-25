@@ -4,6 +4,8 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::iter::FromIterator;
 
+const MAX_RETRY: usize = 50;
+
 struct Reviewers {
     pool: Vec<Vec<String>>,
     retry: usize,
@@ -23,7 +25,7 @@ impl Reviewers {
 
     fn get_reviewer(&mut self, member: String) -> Option<Vec<String>> {
         let mut rng = rand::thread_rng();
-        while self.retry < 50 {
+        while self.retry < MAX_RETRY {
             self.pool.shuffle(&mut rng);
             let current_choice = self.pool.last().unwrap();
 
