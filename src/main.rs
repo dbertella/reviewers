@@ -13,7 +13,7 @@ impl<'a> Reviewers<'a> {
         self.pool = members;
     }
 
-    fn get_reviewer(&mut self, member: &'a str) -> Result<Vec<&'a str>, String> {
+    fn get_reviewer(&mut self, member: &'a str) -> Vec<&'a str> {
         let mut rng = rand::thread_rng();
         loop {
             self.pool.shuffle(&mut rng);
@@ -24,7 +24,7 @@ impl<'a> Reviewers<'a> {
             } else {
                 let mut new_list = self.pool.pop().unwrap();
                 new_list.push(member);
-                return Ok(new_list);
+                return new_list;
             }
         }
     }
@@ -33,7 +33,7 @@ impl<'a> Reviewers<'a> {
         let mut members = Vec::new();
         for row in input.iter() {
             let updated_list = self.get_reviewer(row[0]);
-            members.push(updated_list.unwrap());
+            members.push(updated_list);
         }
         members
     }
