@@ -1,76 +1,74 @@
 use rand::seq::SliceRandom;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::iter::FromIterator;
 
-struct Reviewers<'a> {
-    pool: Vec<Vec<&'a str>>,
+struct Reviewers {
+    pool: Vec<Vec<String>>,
+    retry: usize,
 }
 
-impl<'a> Reviewers<'a> {
-    fn new(members: Vec<Vec<&'a str>>) -> Self {
-        Self { pool: members }
+impl Reviewers {
+    fn new(members: &Vec<Vec<String>>) -> Self {
+        Self {
+            pool: members.to_vec(),
+            retry: 0,
+        }
     }
 
-    fn refresh_pool(&mut self, members: Vec<Vec<&'a str>>) {
-        self.pool = members;
+    fn refresh_pool(&mut self, members: &Vec<Vec<String>>) {
+        self.pool = members.to_vec();
     }
 
-    fn get_reviewer(&mut self, member: &'a str) -> Vec<&'a str> {
+    fn get_reviewer(&mut self, member: String) -> Option<Vec<String>> {
         let mut rng = rand::thread_rng();
-        loop {
+        while self.retry < 50 {
             self.pool.shuffle(&mut rng);
             let current_choice = self.pool.last().unwrap();
 
             if current_choice.contains(&member) {
                 self.pool.shuffle(&mut rng);
+                self.retry += 1;
             } else {
                 let mut new_list = self.pool.pop().unwrap();
                 new_list.push(member);
-                return new_list;
+                return Some(new_list);
             }
         }
+        None
     }
 
-    fn build(&mut self, input: &Vec<Vec<&'a str>>) -> Vec<Vec<&'a str>> {
+    fn build(&mut self, input: &Vec<Vec<String>>) -> Option<Vec<Vec<String>>> {
         let mut members = Vec::new();
         for row in input.iter() {
-            let updated_list = self.get_reviewer(row[0]);
-            members.push(updated_list);
+            if let Some(updated_list) = self.get_reviewer(row[0].to_string()) {
+                members.push(updated_list)
+            } else {
+                return None;
+            }
         }
-        members
+        Some(members)
     }
 }
 
-fn main() -> csv::Result<()> {
-    let input = vec![
-        vec!["Oliver", "Ella", "Charlie"],
-        vec!["Olivia", "Ava", "Ella"],
-        vec!["George", "Mia", "Muhammad"],
-        vec!["Amelia", "Muhammad", "Arthur"],
-        vec!["Harry", "Sophia", "Emily"],
-        vec!["Ava", "Charlie", "Oscar"],
-        vec!["Noah", "Isabella", "Mia"],
-        vec!["Isla", "Oscar", "Isabella"],
-        vec!["Jack", "Harry", "Ava"],
-        vec!["Emily", "Oliver", "Olivia"],
-        vec!["Leo", "Olivia", "Amelia"],
-        vec!["Mia", "Leo", "Grace"],
-        vec!["Arthur", "Jack", "Sophia"],
-        vec!["Isabella", "Emily", "Harry"],
-        vec!["Muhammad", "Amelia", "George"],
-        vec!["Sophia", "Noah", "Oliver"],
-        vec!["Oscar", "Grace", "Jack"],
-        vec!["Ella", "Isla", "Leo"],
-        vec!["Charlie", "George", "Isla"],
-        vec!["Grace", "Arthur", "Noah"],
-    ];
-
-    let mut reviewers = Reviewers::new(input.to_vec());
-
-    let mut members = reviewers.build(&input);
-    reviewers.refresh_pool(members);
-    members = reviewers.build(&input);
-
-    for m in members.iter() {
-        println!("{}, {}, {}", m[0], m[3], m[4]);
+fn main() {
+    let mut data = Vec::new();
+    let f = File::open("reviewers.txt").expect("Failed to read the file");
+    let f = BufReader::new(f);
+    for line in f.lines() {
+        data.push(Vec::from_iter(line.unwrap().split(",").map(String::from)));
     }
-    Ok(())
+    let mut reviewers = Reviewers::new(&data);
+    let mut members = reviewers
+        .build(&data)
+        .expect("Reload, didn't find a possible solutions");
+    reviewers.refresh_pool(&members);
+    members = reviewers
+        .build(&data)
+        .expect("Reload, didn't find a possible solutions");
+
+    for mut m in members {
+        println!("{},{},{}", m.pop().unwrap(), m.pop().unwrap(), m[0]);
+    }
 }
