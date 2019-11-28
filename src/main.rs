@@ -1,8 +1,9 @@
 use rand::seq::SliceRandom;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::iter::FromIterator;
+use std::{
+    fs::File,
+    io::{prelude::*, BufReader},
+    iter::FromIterator,
+};
 
 const MAX_RETRY: usize = 50;
 
@@ -71,6 +72,6 @@ fn main() {
         .expect("Reload, didn't find a possible solutions");
 
     for mut m in members {
-        println!("{},{},{}", m.pop().unwrap(), m.pop().unwrap(), m[0]);
+        println!("{} -> {},{}", m.pop().unwrap(), m.pop().unwrap(), m[0]);
     }
 }
